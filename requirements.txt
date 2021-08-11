@@ -1,0 +1,5 @@
+aioblescan==0.2.8
+bleparser==0.2.0
+paho-mqtt==1.5.1
+pkg-resources==0.0.0
+pycryptodomex==3.10.1
