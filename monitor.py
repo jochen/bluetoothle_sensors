@@ -6,6 +6,12 @@ from bleparser import BleParser
 import paho.mqtt.client as paho
 import json
 import signal
+from zeroconf import ServiceBrowser, Zeroconf
+import time
+import socket
+import platform
+
+MQTT_TOPIC = "bluetoothle_sensor"
 
 #data_string = "043e2502010000219335342d5819020106151695fe5020aa01da219335342d580d1004fe004802c4"
 #data = b'\x04>%\x02\x01\x00\x00\x00G\xdc\xa8eL\x19\x02\x01\x06\x15\x16\x95\xfeP \xaa\x01\xcf\x00G\xdc\xa8eL\r\x10\x04\xf4\x00\\\x02\x9f'
@@ -13,23 +19,64 @@ import signal
 #print (data_string)
 #data = bytes(bytearray.fromhex(data_string))
 
+class zeroconfListener:
+
+    def __init__(self):
+        self.mqtt_address = None
+        self.mqtt_port = None
+
+    def remove_service(self, zeroconf, type, name):
+        print("Service %s removed" % (name,))
+
+    def add_service(self, zeroconf, type, name):
+        global mqtt_address, mqtt_port
+        info = zeroconf.get_service_info(type, name)
+        print("Service %s added, service info: %s" % (name, info))
+        for address in info.addresses:
+            print("Address: %s %d" % (socket.inet_ntoa(address), info.port))
+            self.mqtt_address = socket.inet_ntoa(address)
+            self.mqtt_port = info.port
+
+    def update_service(self, zeroconf, type, name):
+        print ("update")
+
+    def get_mqtt(self):
+        return (self.mqtt_address, self.mqtt_port)
+
+    def mqtt_exists(self):
+        if self.mqtt_address == None or self.mqtt_port == 0:
+            return False
+        return True
+
+
+class zeroconfMqtt:
+
+    def __init__(self):
+        self.zeroconf = Zeroconf()
+        self.listener = zeroconfListener()
+        self.browser = ServiceBrowser(self.zeroconf, "_mqtt._tcp.local.", self.listener)
+
+    def get_mqtt_host(self):
+        try:
+            while not self.listener.mqtt_exists():
+                print("no mqtt_address, mqtt_port")
+                time.sleep(1)
+
+            return self.listener.get_mqtt()
+            #input("Press enter to exit...\n\n")
+        finally:
+            self.zeroconf.close()
+
+
+
 def alarm_handler(signum, frame):
     print("Event timeout")
     raise Exception("Event_Timeout")
-
-signal.signal(signal.SIGALRM, alarm_handler)
-
-broker = "localhost"
-port = 1883
-topic = "bluetoothle_sensor"
 
 def on_publish(client,userdata,result):
     print("data published \n")
     pass
 
-mqtt_client = paho.Client("control1")
-mqtt_client.on_publish = on_publish
-mqtt_client.connect(broker,port)
 
 def publish(data):
     ret = mqtt_client.publish(topic,json.dumps(data))
@@ -54,7 +101,7 @@ def process_raw(data):
     xx = ev.decode(data)
 
     raw_data = ev.raw_data
-    print("Raw data: {}".format(raw_data))
+    print(f"Raw data: {raw_data}")
     if raw_data is not None:
         parsed_data = ble_parse(raw_data)
         if parsed_data is not None:
@@ -78,6 +125,19 @@ class eventLoop:
 
 if __name__ == "__main__":
 
+    signal.signal(signal.SIGALRM, alarm_handler)
+
+    zcm = zeroconfMqtt()
+    host, port = zcm.get_mqtt_host()
+    print(host, port)
+
+    topic = MQTT_TOPIC
+
+    mqtt_client = paho.Client(f"{platform.node()}-ble-monitor")
+    mqtt_client.on_publish = on_publish
+    mqtt_client.connect(host,port)
+    mqtt_client.loop_start()
+
     while True:
         event = eventLoop()
 
@@ -97,7 +157,7 @@ if __name__ == "__main__":
             event.conn.close()
             #event.event_loop.close()
 
-
+    mqtt_client.loop_stop()
 
 
 
