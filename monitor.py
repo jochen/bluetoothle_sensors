@@ -74,7 +74,7 @@ def alarm_handler(signum, frame):
     raise Exception("Event_Timeout")
 
 def on_publish(client,userdata,result):
-    print("data published \n")
+    #print("data published \n")
     pass
 
 
@@ -87,11 +87,14 @@ def ble_parse(data):
     ble_parser = BleParser()
     try:
         sensor_msg, tracker_msg = ble_parser.parse_data(data)
-        print(sensor_msg, tracker_msg)
         if sensor_msg is not None:
+            #print("sensor", sensor_msg)
+            #print("tracker", tracker_msg)
             return sensor_msg
     except TypeError:
 	    pass # 'NoneType' object is not subscriptable
+
+last_data = {}
 
 def process_raw(data):
 
@@ -101,10 +104,23 @@ def process_raw(data):
     xx = ev.decode(data)
 
     raw_data = ev.raw_data
-    print(f"Raw data: {raw_data}")
+    #print(f"Raw data: {raw_data}")
     if raw_data is not None:
         parsed_data = ble_parse(raw_data)
-        if parsed_data is not None:
+        if parsed_data is not None and "mac" in parsed_data:
+            if parsed_data["mac"] in last_data:
+                if last_data[parsed_data["mac"]]["time"] + 10 > time.time():
+                    #print("time skipping", parsed_data)
+                    return
+                if (parsed_data["mac"] == last_data[parsed_data["mac"]]["data"] and
+                    last_data[parsed_data["mac"]]["time"] + 60 < time.time()):
+                    print("data skipping", parsed_data)
+                    return
+            last_data[parsed_data["mac"]] = { "data": parsed_data, "time": time.time() }
+            #if "A4C138281A44" in parsed_data["mac"]:
+            #    print(parsed_data)
+            #    print(last_data[parsed_data["mac"]])
+            print(parsed_data)
             publish(parsed_data)
 
 class eventLoop:
