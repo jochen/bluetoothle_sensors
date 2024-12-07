@@ -86,7 +86,7 @@ def ble_parse(data):
 
     ble_parser = BleParser()
     try:
-        sensor_msg, tracker_msg = ble_parser.parse_data(data)
+        sensor_msg, tracker_msg = ble_parser.parse_raw_data(data)
         if sensor_msg is not None:
             #print("sensor", sensor_msg)
             #print("tracker", tracker_msg)
