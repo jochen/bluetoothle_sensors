@@ -1,0 +1,14 @@
+[Unit]
+Description=Python Application
+After=network.target
+
+[Service]
+# Environment=EXAMPLE_ENV=bla
+SYSLOG_IDENTIFIER=simple-service
+WorkingDirectory=${PWD}
+ExecStart=${PWD}/venv/bin/python ${PWD}/${START}
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
