@@ -16,5 +16,7 @@ systemctl --user start $APP
 
 sudo loginctl enable-linger pi
 
+
+echo "get output with:"
 echo "journalctl --user -xfu $APP"
 
