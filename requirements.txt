@@ -1,5 +1,5 @@
 aioblescan==0.2.9
-bleparser==1.4.0
+bleparser==3.7.1
 ifaddr==0.1.7
 paho-mqtt==1.6.1
 pycryptodomex==3.11.0
