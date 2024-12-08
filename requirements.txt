@@ -1,6 +1,7 @@
 aioblescan==0.2.9
-bleparser==3.7.1
+bleparser==1.7.0
 ifaddr==0.1.7
 paho-mqtt==1.6.1
+pkg_resources==0.0.0
 pycryptodomex==3.11.0
 zeroconf==0.36.13
